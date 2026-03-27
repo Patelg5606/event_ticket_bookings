@@ -43,27 +43,6 @@ function buildRowGroups(seatList: Seat[]) {
   return rows
 }
 
-function ColumnHeadings() {
-  return (
-    <div className="flex items-end gap-2 sm:gap-2.5 md:gap-3">
-      <div
-        className="w-6 shrink-0 sm:w-8 md:w-9"
-        aria-hidden
-      />
-      <div className="grid min-w-0 flex-1 grid-cols-10 gap-2 sm:gap-2.5 md:gap-3">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <div
-            key={n}
-            className="text-center text-[9px] font-semibold tabular-nums text-slate-500 sm:text-[10px] md:text-xs"
-          >
-            {n}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 type SeatTileProps = {
   seat: Seat
   selected: boolean
@@ -174,18 +153,16 @@ function SectionShell({
 }: SectionShellProps) {
   return (
     <section
-      className="rounded-xl border border-slate-800/90 bg-slate-900/55 p-3 shadow-[0_18px_48px_-12px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:rounded-2xl sm:p-4 md:p-5"
       role={role}
       aria-label={ariaLabel}
     >
-      <header className="mb-3 flex flex-col gap-1 sm:mb-4 md:flex-row md:items-end md:justify-between">
+      <header className="mb-1 flex flex-col gap-1 sm:mb-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-tight text-white sm:text-base md:text-lg">
-            {title}
+            {title} <span className="text-[11px] text-slate-400 sm:text-xs md:text-sm">
+              ({subtitle})
+            </span>
           </h2>
-          <p className="mt-0.5 text-[11px] text-slate-400 sm:text-xs md:text-sm">
-            {subtitle}
-          </p>
         </div>
       </header>
       <SeatMapScroll>
@@ -207,19 +184,18 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
   const generalRows = buildRowGroups(generalSeats)
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="flex flex-col gap-1 sm:gap-6">
       <p className="text-center text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 sm:text-xs sm:tracking-[0.18em]">
         Front of venue
       </p>
 
-      <div className="flex flex-col gap-8 md:gap-10">
+      <div className="flex flex-col gap-2 md:gap-5"> 
         <SectionShell
           title="VIP"
           subtitle="Rows A–B · ₹350 per seat"
           role="group"
           ariaLabel="VIP seats"
         >
-          <ColumnHeadings />
           {vipRows.map((rg) => (
             <SeatRow
               key={rg.row}
@@ -237,7 +213,6 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
           role="group"
           ariaLabel="General seats"
         >
-          <ColumnHeadings />
           {generalRows.map((rg) => (
             <SeatRow
               key={rg.row}
