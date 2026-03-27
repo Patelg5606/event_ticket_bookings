@@ -1,13 +1,30 @@
 import { useQuery } from '@tanstack/react-query'
 import { Armchair } from 'lucide-react'
+import { useState } from 'react'
 import { SeatGrid } from '@/features/booking/SeatGrid'
 import { fetchSeatList } from '@/features/booking/mockApi'
+import type { Seat } from '@/features/booking/types'
 
 export function HomePage() {
+  const [pickedIds, setPickedIds] = useState<string[]>([])
+
   const seatQuery = useQuery({
     queryKey: ['seats'],
     queryFn: fetchSeatList,
   })
+
+  function handleSeatClick(seat: Seat) {
+    if (seat.status === 'unavailable') {
+      return
+    }
+
+    setPickedIds((prev) => {
+      if (prev.includes(seat.id)) {
+        return prev.filter((id) => id !== seat.id)
+      }
+      return [...prev, seat.id]
+    })
+  }
 
   if (seatQuery.isPending) {
     return (
@@ -38,12 +55,23 @@ export function HomePage() {
             Choose your seats
           </h1>
           <p className="mt-2 max-w-2xl text-xs leading-relaxed text-slate-400 sm:text-sm">
-            VIP is closer to the stage; general fills the rest of the hall.
-            Each tile shows the seat code under the chair icon.
+            Tap an open seat to select it; tap again to remove. Unavailable
+            seats cannot be picked.
           </p>
+          {pickedIds.length > 0 ? (
+            <p className="mt-3 text-sm text-sky-300">
+              Selected: {pickedIds.length} seat
+              {pickedIds.length === 1 ? '' : 's'} (
+              {[...pickedIds].sort().join(', ')})
+            </p>
+          ) : null}
         </header>
 
-        <SeatGrid seats={seats} />
+        <SeatGrid
+          seats={seats}
+          pickedIds={pickedIds}
+          onSeatClick={handleSeatClick}
+        />
 
         <footer className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-3 sm:rounded-2xl sm:px-5 sm:py-4">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:mb-3 sm:text-xs">
@@ -71,6 +99,12 @@ export function HomePage() {
                 <Armchair className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               </span>
               VIP
+            </span>
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-2 ring-offset-[#060b14]">
+                <Armchair className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </span>
+              Selected
             </span>
           </div>
         </footer>

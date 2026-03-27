@@ -4,6 +4,8 @@ import type { Seat } from './types'
 
 type SeatGridProps = {
   seats: Seat[]
+  pickedIds: string[]
+  onSeatClick: (seat: Seat) => void
 }
 
 type RowGroup = {
@@ -22,7 +24,7 @@ function SeatMapScroll({ children }: { children: ReactNode }) {
   )
 }
 
-  function buildRowGroups(seatList: Seat[]) {
+function buildRowGroups(seatList: Seat[]) {
   const byRow: Record<string, Seat[]> = {}
 
   for (const seat of seatList) {
@@ -62,42 +64,77 @@ function ColumnHeadings() {
   )
 }
 
-function SeatTile({ seat }: { seat: Seat }) {
+type SeatTileProps = {
+  seat: Seat
+  selected: boolean
+  onPick: (seat: Seat) => void
+}
+
+function SeatTile({ seat, selected, onPick }: SeatTileProps) {
   const taken = seat.status === 'unavailable'
   const vip = seat.tier === 'VIP'
 
   let shell =
-    'flex min-h-10 flex-col items-center justify-center gap-0 rounded-md px-0 py-1 shadow-sm sm:min-h-11 sm:rounded-lg sm:py-1 md:min-h-12'
+    'flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 overflow-visible rounded-md border-0 px-0.5 py-1.5 font-inherit shadow-sm outline-none sm:min-h-[3.5rem] sm:rounded-lg sm:py-2 md:min-h-14 focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060b14]'
 
   let iconClass =
-    'h-4 w-4 shrink-0 sm:h-5 sm:w-5 md:h-6 md:w-6'
+    'block h-[1.125rem] w-[1.125rem] shrink-0 sm:h-5 sm:w-5 md:h-6 md:w-6'
 
   if (taken) {
     shell +=
-      ' bg-red-950/80 text-red-200 ring-1 ring-red-500/40'
+      ' cursor-not-allowed bg-red-950/80 text-red-200 ring-1 ring-red-500/40'
     iconClass += ' opacity-55'
+  } else if (selected) {
+    shell +=
+      ' cursor-pointer bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] sm:ring-offset-2'
   } else if (vip) {
     shell +=
-      ' bg-slate-900 text-amber-50 ring-2 ring-amber-400/85 ring-offset-1 ring-offset-[#060b14] sm:ring-offset-2'
+      ' cursor-pointer bg-slate-900 text-amber-50 ring-2 ring-amber-400/85 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] sm:ring-offset-2'
   } else {
     shell +=
-      ' bg-emerald-700 text-white ring-1 ring-emerald-400/35'
+      ' cursor-pointer bg-emerald-700 text-white ring-1 ring-emerald-400/35 active:scale-[0.98]'
   }
 
-  return (
-    <div
-      className={shell}
-      title={`${seat.id} · ${seat.tier} · ₹${seat.price}`}
-    >
-      <Armchair className={iconClass} strokeWidth={1.75} aria-hidden />
+  const label = `${seat.id} · ${seat.tier} · ₹${seat.price}`
+
+  const inner = (
+    <>
+      <span className="flex shrink-0 items-center justify-center leading-none">
+        <Armchair className={iconClass} strokeWidth={1.75} aria-hidden />
+      </span>
       <span className="text-[8px] font-semibold leading-none tabular-nums sm:text-[9px] md:text-[10px]">
         {seat.id}
       </span>
-    </div>
+    </>
+  )
+
+  if (taken) {
+    return (
+      <div className={shell} title={label} aria-disabled="true">
+        {inner}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      className={shell}
+      title={label}
+      aria-pressed={selected}
+      onClick={() => onPick(seat)}
+    >
+      {inner}
+    </button>
   )
 }
 
-function SeatRow({ row, seats }: RowGroup) {
+type SeatRowProps = RowGroup & {
+  pickedIds: string[]
+  onSeatClick: (seat: Seat) => void
+}
+
+function SeatRow({ row, seats, pickedIds, onSeatClick }: SeatRowProps) {
   return (
     <div className="flex items-stretch gap-2 sm:gap-2.5 md:gap-3">
       <div
@@ -108,7 +145,12 @@ function SeatRow({ row, seats }: RowGroup) {
       </div>
       <div className="grid min-w-0 flex-1 grid-cols-10 gap-2 sm:gap-2.5 md:gap-3">
         {seats.map((seat) => (
-          <SeatTile key={seat.id} seat={seat} />
+          <SeatTile
+            key={seat.id}
+            seat={seat}
+            selected={pickedIds.includes(seat.id)}
+            onPick={onSeatClick}
+          />
         ))}
       </div>
     </div>
@@ -153,9 +195,13 @@ function SectionShell({
   )
 }
 
-export function SeatGrid({ seats }: SeatGridProps) {
-  const vipSeats = seats.filter((s) => s.tier === 'VIP')
-  const generalSeats = seats.filter((s) => s.tier === 'General')
+export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
+  const chosen = pickedIds ?? []
+  const list = seats ?? []
+  const onPick = onSeatClick ?? (() => {})
+
+  const vipSeats = list.filter((s) => s.tier === 'VIP')
+  const generalSeats = list.filter((s) => s.tier === 'General')
 
   const vipRows = buildRowGroups(vipSeats)
   const generalRows = buildRowGroups(generalSeats)
@@ -175,7 +221,13 @@ export function SeatGrid({ seats }: SeatGridProps) {
         >
           <ColumnHeadings />
           {vipRows.map((rg) => (
-            <SeatRow key={rg.row} row={rg.row} seats={rg.seats} />
+            <SeatRow
+              key={rg.row}
+              row={rg.row}
+              seats={rg.seats}
+              pickedIds={chosen}
+              onSeatClick={onPick}
+            />
           ))}
         </SectionShell>
 
@@ -187,7 +239,13 @@ export function SeatGrid({ seats }: SeatGridProps) {
         >
           <ColumnHeadings />
           {generalRows.map((rg) => (
-            <SeatRow key={rg.row} row={rg.row} seats={rg.seats} />
+            <SeatRow
+              key={rg.row}
+              row={rg.row}
+              seats={rg.seats}
+              pickedIds={chosen}
+              onSeatClick={onPick}
+            />
           ))}
         </SectionShell>
       </div>
