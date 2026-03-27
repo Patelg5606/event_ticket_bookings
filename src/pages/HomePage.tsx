@@ -1,4 +1,15 @@
+import { useEffect } from 'react'
+import { fetchSeatList } from '@/features/booking/mockApi'
+
 export function HomePage() {
+  useEffect(() => {
+    fetchSeatList().then((seats) => {
+      console.log('Seats loaded:', seats.length)
+      console.table(seats.slice(0, 10))
+      console.log('Full list:', seats)
+    })
+  }, [])
+
   return (
     <div className="min-h-dvh bg-slate-950 text-slate-100">
       <main className="mx-auto flex max-w-lg flex-col gap-3 px-6 py-16">
