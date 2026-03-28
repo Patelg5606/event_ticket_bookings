@@ -1,15 +1,23 @@
-import { Armchair, CreditCard, ShoppingCart } from 'lucide-react'
+import { Armchair, Clock, CreditCard, ShoppingCart } from 'lucide-react'
 import type { Seat } from './types'
 
 type BookingPanelProps = {
   pickedIds: string[]
   seats: Seat[]
+  holdSecondsLeft: number | null
   onCheckout: () => void
+}
+
+function formatHold(sec: number) {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 export function BookingPanel({
   pickedIds,
   seats,
+  holdSecondsLeft,
   onCheckout,
 }: BookingPanelProps) {
   type Row = {
@@ -62,6 +70,13 @@ export function BookingPanel({
         </span>
       </div>
 
+      {hasSeats && holdSecondsLeft !== null && holdSecondsLeft > 0 ? (
+        <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-950/30 px-4 py-2.5 text-sm font-semibold text-amber-200">
+          <Clock className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+          <span>Complete checkout in {formatHold(holdSecondsLeft)}</span>
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 flex-col px-4 pt-3 sm:px-5 sm:pt-4">
         {hasSeats ? (
           <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5 pb-3 [-webkit-overflow-scrolling:touch]">
@@ -76,9 +91,6 @@ export function BookingPanel({
                   </p>
                   <p className="mt-0.5 text-xs font-medium text-slate-500">
                     {row.tier}
-                  </p>
-                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500/90">
-                    Reserved
                   </p>
                 </div>
                 <span className="shrink-0 text-base font-bold tabular-nums text-white sm:text-lg">

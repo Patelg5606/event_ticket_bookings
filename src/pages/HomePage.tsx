@@ -1,13 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { BookingPanel } from '@/features/booking/BookingPanel'
 import { SeatGrid } from '@/features/booking/SeatGrid'
 import { fetchSeatList } from '@/features/booking/mockApi'
 import type { Seat } from '@/features/booking/types'
 
+const HOLD_SECONDS = 5 * 60
+
 export function HomePage() {
   const [pickedIds, setPickedIds] = useState<string[]>([])
   const [takenByOthers, setTakenByOthers] = useState<string[]>([])
+  const [holdSecondsLeft, setHoldSecondsLeft] = useState<number | null>(null)
+  const [seatTakenFlash, setSeatTakenFlash] = useState(false)
+
+  const displaySeatsRef = useRef<Seat[]>([])
+  const pickedIdsRef = useRef<string[]>([])
 
   const seatQuery = useQuery({
     queryKey: ['seats'],
@@ -15,26 +22,6 @@ export function HomePage() {
   })
 
   const seatList = seatQuery.data
-
-  function handleSeatClick(seat: Seat) {
-    if (seat.status === 'unavailable') {
-      return
-    }
-
-    setPickedIds((prev) => {
-      if (prev.includes(seat.id)) {
-        return prev.filter((id) => id !== seat.id)
-      }
-      return [...prev, seat.id]
-    })
-  }
-
-  function handleCheckout() {
-    if (pickedIds.length === 0) {
-      return
-    }
-    window.alert('Demo checkout — timer and payment can come in later steps.')
-  }
 
   useEffect(() => {
     if (!seatList || seatList.length === 0) {
@@ -49,7 +36,7 @@ export function HomePage() {
           if (seat.status !== 'available') {
             return false
           }
-          if (pickedIds.includes(seat.id)) {
+          if (pickedIdsRef.current.includes(seat.id)) {
             return false
           }
           if (already.has(seat.id)) {
@@ -96,7 +83,89 @@ export function HomePage() {
     }, 5000)
 
     return () => window.clearInterval(timer)
-  }, [seatList, pickedIds])
+  }, [seatList])
+
+  useEffect(() => {
+    if (holdSecondsLeft === null || holdSecondsLeft <= 0) {
+      return
+    }
+
+    const t = window.setTimeout(() => {
+      setHoldSecondsLeft((s) => (s === null ? null : s - 1))
+    }, 1000)
+
+    return () => window.clearTimeout(t)
+  }, [holdSecondsLeft])
+
+  useEffect(() => {
+    if (holdSecondsLeft !== 0) {
+      return
+    }
+    const t = window.setTimeout(() => {
+      setPickedIds([])
+      setHoldSecondsLeft(null)
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [holdSecondsLeft])
+
+  function handleSeatClick(seat: Seat) {
+    const live = displaySeatsRef.current
+    const fresh = live.find((s) => s.id === seat.id)
+    if (!fresh) {
+      return
+    }
+
+    const mine = pickedIdsRef.current.includes(seat.id)
+
+    if (mine) {
+      setPickedIds((prev) => {
+        const next = prev.filter((id) => id !== seat.id)
+        if (next.length === 0) {
+          setHoldSecondsLeft(null)
+        }
+        return next
+      })
+      return
+    }
+
+    if (fresh.status === 'unavailable') {
+      setSeatTakenFlash(true)
+      window.setTimeout(() => setSeatTakenFlash(false), 3200)
+      return
+    }
+
+    setPickedIds((prev) => {
+      const next = [...prev, seat.id]
+      if (prev.length === 0) {
+        setHoldSecondsLeft(HOLD_SECONDS)
+      }
+      return next
+    })
+  }
+
+  function handleCheckout() {
+    if (pickedIds.length === 0) {
+      return
+    }
+    setPickedIds([])
+    setHoldSecondsLeft(null)
+    window.alert('Checkout complete — hold released.')
+  }
+
+  const seats = seatList ?? []
+  const displaySeats = seats.map((seat) => {
+    const grabbed = takenByOthers.includes(seat.id)
+    const mine = pickedIds.includes(seat.id)
+    if (grabbed && !mine) {
+      return { ...seat, status: 'unavailable' as const }
+    }
+    return seat
+  })
+
+  useLayoutEffect(() => {
+    pickedIdsRef.current = pickedIds
+    displaySeatsRef.current = displaySeats
+  })
 
   if (seatQuery.isPending) {
     return (
@@ -114,27 +183,25 @@ export function HomePage() {
     )
   }
 
-  const seats = seatList ?? []
-
-  const displaySeats = seats.map((seat) => {
-    const grabbed = takenByOthers.includes(seat.id)
-    const mine = pickedIds.includes(seat.id)
-    if (grabbed && !mine) {
-      return { ...seat, status: 'unavailable' as const }
-    }
-    return seat
-  })
-
   return (
     <div className="min-h-dvh bg-[#060b14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-slate-100">
+      {seatTakenFlash ? (
+        <div
+          role="alert"
+          className="fixed top-4 left-1/2 z-[100] max-w-[90vw] -translate-x-1/2 rounded-xl bg-amber-950/95 px-5 py-3 text-center text-sm font-semibold text-amber-100 shadow-xl ring-2 ring-amber-500/60"
+        >
+          Seat just taken!
+        </div>
+      ) : null}
+
       <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:max-w-6xl">
         <header className="shrink-0 border-b border-slate-800/80 pb-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/90 sm:text-xs sm:tracking-[0.2em]">
             Event ticket booking
           </p>
           <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-500">
-            Tap a seat to <span className="text-amber-400/90">reserve</span> it (yellow).
-            Gray seats are already taken. VIP rows keep the gold outline until you reserve.
+            Yellow seats are <span className="text-amber-400/90">reserved</span> for you (5 min hold).
+            Gray = taken. If a seat sells while you tap it, you will see an error.
           </p>
         </header>
 
@@ -145,48 +212,13 @@ export function HomePage() {
               pickedIds={pickedIds}
               onSeatClick={handleSeatClick}
             />
-
-              {/* <footer className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-3 sm:rounded-2xl sm:px-5 sm:py-4">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:mb-3 sm:text-xs">
-                  Legend
-                </p>
-                <div className="flex flex-col gap-3 text-xs text-slate-400 sm:flex-row sm:flex-wrap sm:gap-x-8 sm:gap-y-3 sm:text-sm">
-                  <span className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-700 text-white ring-1 ring-emerald-400/35">
-                      <Armchair className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                    </span>
-                    Available
-                  </span>
-                  <span className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-950/80 text-red-200 ring-1 ring-red-500/40">
-                      <Armchair
-                        className="h-4 w-4 opacity-55"
-                        strokeWidth={1.75}
-                        aria-hidden
-                      />
-                    </span>
-                    Unavailable
-                  </span>
-                  <span className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-amber-50 ring-2 ring-amber-400/85 ring-offset-2 ring-offset-[#060b14]">
-                      <Armchair className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                    </span>
-                    VIP
-                  </span>
-                  <span className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-2 ring-offset-[#060b14]">
-                      <Armchair className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                    </span>
-                    Selected
-                  </span>
-                </div>
-              </footer> */}
           </div>
 
           <div className="flex min-h-[70vh] flex-col lg:min-h-0 lg:h-[calc(100dvh-7.5rem)]">
             <BookingPanel
               pickedIds={pickedIds}
               seats={seats}
+              holdSecondsLeft={holdSecondsLeft}
               onCheckout={handleCheckout}
             />
           </div>

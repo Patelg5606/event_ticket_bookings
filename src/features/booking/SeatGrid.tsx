@@ -212,7 +212,7 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
         </SectionShell>
 
         <SectionShell
-          title="General seating"
+          title="General"
           subtitle="Rows C–J · ₹150 per seat"
           role="group"
           ariaLabel="General seats"
