@@ -205,13 +205,13 @@ export const SeatGrid = memo(function SeatGrid({
   }, [seats])
 
   return (
-    <div className="flex min-w-0 max-w-full flex-col gap-1 sm:gap-6">
+    <div className="flex min-w-0 max-w-full flex-col gap-1 sm:gap-5">
       <p className="text-center text-[10px] font-medium uppercase tracking-[0.15em] text-slate-500 sm:text-xs sm:tracking-[0.18em]">
         Front of venue
       </p>
 
       <SeatMapScroll>
-        <div className="flex flex-col gap-6 md:gap-8">
+        <div className="flex flex-col gap-6 md:gap-4">
           <SectionShell
             title="VIP"
             subtitle="Rows A–B · ₹350 per seat"

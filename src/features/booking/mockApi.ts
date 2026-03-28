@@ -7,7 +7,6 @@ export function fetchSeatList(): Promise<Seat[]> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const seats = buildSeatList()
-      console.log('seats', seats)
       resolve(seats)
     }, 300)
   })

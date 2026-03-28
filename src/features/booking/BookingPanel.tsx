@@ -56,7 +56,7 @@ export const BookingPanel = memo(function BookingPanel({
 
       <div className="flex min-h-0 flex-1 flex-col px-4 pt-3 sm:px-5 sm:pt-4">
         {hasSeats ? (
-          <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5 pb-3 [-webkit-overflow-scrolling:touch]">
+          <ul className="booking-panel-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 pb-3 [-webkit-overflow-scrolling:touch]">
             {rows.map((row) => (
               <li
                 key={row.id}

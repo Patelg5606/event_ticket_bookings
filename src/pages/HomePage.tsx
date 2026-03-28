@@ -260,7 +260,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#060b14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-slate-100">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#060b14] text-slate-100">
       {successModal ? (
         <BookingSuccessModal
           summary={successModal}
@@ -271,21 +271,62 @@ export function HomePage() {
       <SeatNoticeToast notice={seatNotice} />
 
       <main
-        className={`mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:max-w-6xl ${successModal ? 'pointer-events-none blur-[2px]' : ''}`}
+        className={`mx-auto flex w-full max-w-4xl flex-1 min-h-0 flex-col overflow-hidden px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3 md:px-8 lg:max-w-6xl ${successModal ? 'pointer-events-none blur-[2px]' : ''}`}
         aria-hidden={successModal ? true : undefined}
       >
-        <header className="shrink-0 border-b border-slate-800/80 pb-4">
+        <header className="shrink-0 border-b border-slate-800/80 pb-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/90 sm:text-xs sm:tracking-[0.2em]">
             Event ticket booking
           </p>
-          <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-500">
-            Yellow seats are <span className="text-amber-400/90">reserved</span> for you (5 min hold).
-            Gray = taken. Tap a taken seat to see why it is unavailable.
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+            <p className="max-w-xl text-xs leading-relaxed text-slate-500">
+              Yellow seats are <span className="text-amber-400/90">reserved</span> for you (5 min hold).
+              Gray = taken. Tap a taken seat to see why it is unavailable.
+            </p>
+            <div
+              className="shrink-0 border-t border-slate-800/80 pt-3 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0"
+              role="group"
+              aria-label="Seat map legend"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Legend
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[10px] text-slate-400 sm:text-xs">
+                <li className="flex items-center gap-2">
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-md bg-emerald-700 ring-1 ring-emerald-400/35 sm:h-6 sm:w-6"
+                    aria-hidden
+                  />
+                  <span>Available</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-md bg-slate-900 ring-2 ring-amber-400/70 ring-offset-1 ring-offset-[#060b14] sm:h-6 sm:w-6 sm:ring-offset-2"
+                    aria-hidden
+                  />
+                  <span>VIP</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-md bg-amber-500 ring-2 ring-amber-200 ring-offset-1 ring-offset-[#060b14] sm:h-6 sm:w-6 sm:ring-offset-2"
+                    aria-hidden
+                  />
+                  <span>Your hold</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-md bg-slate-800/80 ring-1 ring-slate-600/50 sm:h-6 sm:w-6"
+                    aria-hidden
+                  />
+                  <span>Taken</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 py-6 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-stretch lg:gap-8 lg:py-6">
-          <div className="flex min-h-0 min-w-0 flex-col gap-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:grid lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-stretch lg:gap-6 lg:gap-x-8">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] lg:min-h-0">
             <SeatGrid
               seats={displaySeats}
               pickedIds={pickedIds}
@@ -293,7 +334,7 @@ export function HomePage() {
             />
           </div>
 
-          <div className="flex min-h-[70vh] flex-col lg:min-h-0 lg:h-[calc(100dvh-7.5rem)]">
+          <div className="flex w-full min-w-0 shrink-0 flex-col lg:h-full lg:max-h-full lg:min-h-0">
             <BookingPanel
               pickedIds={pickedIds}
               seats={seats}
