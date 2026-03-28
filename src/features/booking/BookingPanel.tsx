@@ -91,7 +91,7 @@ export function BookingPanel({
                   </p>
                   <p className="mt-0.5 text-xs font-medium text-slate-500">
                     {row.tier}
-                  </p>
+                  </p>  
                 </div>
                 <span className="shrink-0 text-base font-bold tabular-nums text-white sm:text-lg">
                   ₹{row.price}
