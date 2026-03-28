@@ -41,7 +41,10 @@ export function BookingPanel({
   const hasSeats = count > 0
 
   return (
-    <aside className="flex h-full min-h-[70vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[#111622] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.45)] lg:min-h-0">
+    <aside
+      className="flex h-full min-h-[70vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[#111622] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.45)] lg:min-h-0"
+      aria-label="Reserved seats and checkout"
+    >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 px-4 py-4 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a1f2e] text-slate-200 ring-1 ring-white/[0.06]">
@@ -74,6 +77,9 @@ export function BookingPanel({
                   <p className="mt-0.5 text-xs font-medium text-slate-500">
                     {row.tier}
                   </p>
+                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500/90">
+                    Reserved
+                  </p>
                 </div>
                 <span className="shrink-0 text-base font-bold tabular-nums text-white sm:text-lg">
                   ₹{row.price}
@@ -88,9 +94,9 @@ export function BookingPanel({
               strokeWidth={1.15}
               aria-hidden
             />
-            <p className="text-sm font-medium text-slate-400">No seats selected</p>
+            <p className="text-sm font-medium text-slate-400">Nothing reserved yet</p>
             <p className="max-w-[220px] text-xs leading-relaxed text-slate-600">
-              Click seats on the map to reserve
+              Tap seats on the map — they turn yellow when reserved for you
             </p>
           </div>
         )}

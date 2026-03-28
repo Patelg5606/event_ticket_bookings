@@ -45,33 +45,33 @@ function buildRowGroups(seatList: Seat[]) {
 
 type SeatTileProps = {
   seat: Seat
-  selected: boolean
+  reserved: boolean
   onPick: (seat: Seat) => void
 }
 
-function SeatTile({ seat, selected, onPick }: SeatTileProps) {
+function SeatTile({ seat, reserved, onPick }: SeatTileProps) {
   const taken = seat.status === 'unavailable'
   const vip = seat.tier === 'VIP'
 
   let shell =
-    'flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 overflow-visible rounded-md border-0 px-0.5 py-1.5 font-inherit shadow-sm outline-none sm:min-h-[3.5rem] sm:rounded-lg sm:py-2 md:min-h-14 focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060b14]'
+    'flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 overflow-visible rounded-md border-0 px-0.5 py-1.5 font-inherit shadow-sm outline-none sm:min-h-[3.5rem] sm:rounded-lg sm:py-2 md:min-h-14 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060b14]'
 
   let iconClass =
     'block h-[1.125rem] w-[1.125rem] shrink-0 sm:h-5 sm:w-5 md:h-6 md:w-6'
 
   if (taken) {
     shell +=
-      ' cursor-not-allowed bg-red-950/80 text-red-200 ring-1 ring-red-500/40'
-    iconClass += ' opacity-55'
-  } else if (selected) {
+      ' pointer-events-none cursor-not-allowed bg-slate-800/70 text-slate-500 ring-1 ring-slate-600/50'
+    iconClass += ' text-slate-600 opacity-40'
+  } else if (reserved) {
     shell +=
-      ' cursor-pointer bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] sm:ring-offset-2'
+      ' cursor-pointer bg-amber-500 text-amber-950 ring-2 ring-amber-200 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] focus-visible:ring-amber-400 sm:ring-offset-2'
   } else if (vip) {
     shell +=
-      ' cursor-pointer bg-slate-900 text-amber-50 ring-2 ring-amber-400/85 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] sm:ring-offset-2'
+      ' cursor-pointer bg-slate-900 text-amber-50 ring-2 ring-amber-400/85 ring-offset-1 ring-offset-[#060b14] active:scale-[0.98] focus-visible:ring-amber-500 sm:ring-offset-2'
   } else {
     shell +=
-      ' cursor-pointer bg-emerald-700 text-white ring-1 ring-emerald-400/35 active:scale-[0.98]'
+      ' cursor-pointer bg-emerald-700 text-white ring-1 ring-emerald-400/35 active:scale-[0.98] focus-visible:ring-emerald-400'
   }
 
   const label = `${seat.id} · ${seat.tier} · ₹${seat.price}`
@@ -89,7 +89,11 @@ function SeatTile({ seat, selected, onPick }: SeatTileProps) {
 
   if (taken) {
     return (
-      <div className={shell} title={label} aria-disabled="true">
+      <div
+        className={shell}
+        title={`${seat.id} — booked`}
+        aria-label={`${seat.id}, booked, not selectable`}
+      >
         {inner}
       </div>
     )
@@ -99,8 +103,8 @@ function SeatTile({ seat, selected, onPick }: SeatTileProps) {
     <button
       type="button"
       className={shell}
-      title={label}
-      aria-pressed={selected}
+      title={reserved ? `${seat.id} — reserved for you` : label}
+      aria-pressed={reserved}
       onClick={() => onPick(seat)}
     >
       {inner}
@@ -127,7 +131,7 @@ function SeatRow({ row, seats, pickedIds, onSeatClick }: SeatRowProps) {
           <SeatTile
             key={seat.id}
             seat={seat}
-            selected={pickedIds.includes(seat.id)}
+            reserved={pickedIds.includes(seat.id)}
             onPick={onSeatClick}
           />
         ))}
