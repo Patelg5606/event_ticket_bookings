@@ -1,11 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { BookingPanel } from '@/features/booking/BookingPanel'
 import { SeatGrid } from '@/features/booking/SeatGrid'
 import { fetchSeatList } from '@/features/booking/mockApi'
 import type { Seat } from '@/features/booking/types'
 
 const HOLD_SECONDS = 5 * 60
+
+const EMPTY_SEAT_LIST: Seat[] = []
 
 export function HomePage() {
   const [pickedIds, setPickedIds] = useState<string[]>([])
@@ -108,7 +117,7 @@ export function HomePage() {
     return () => window.clearTimeout(t)
   }, [holdSecondsLeft])
 
-  function handleSeatClick(seat: Seat) {
+  const handleSeatClick = useCallback((seat: Seat) => {
     const live = displaySeatsRef.current
     const fresh = live.find((s) => s.id === seat.id)
     if (!fresh) {
@@ -141,26 +150,28 @@ export function HomePage() {
       }
       return next
     })
-  }
+  }, [])
 
-  function handleCheckout() {
-    if (pickedIds.length === 0) {
+  const handleCheckout = useCallback(() => {
+    if (pickedIdsRef.current.length === 0) {
       return
     }
     setPickedIds([])
     setHoldSecondsLeft(null)
     window.alert('Checkout complete — hold released.')
-  }
+  }, [])
 
-  const seats = seatList ?? []
-  const displaySeats = seats.map((seat) => {
-    const grabbed = takenByOthers.includes(seat.id)
-    const mine = pickedIds.includes(seat.id)
-    if (grabbed && !mine) {
-      return { ...seat, status: 'unavailable' as const }
-    }
-    return seat
-  })
+  const seats = seatList ?? EMPTY_SEAT_LIST
+  const displaySeats = useMemo(() => {
+    return seats.map((seat) => {
+      const grabbed = takenByOthers.includes(seat.id)
+      const mine = pickedIds.includes(seat.id)
+      if (grabbed && !mine) {
+        return { ...seat, status: 'unavailable' as const }
+      }
+      return seat
+    })
+  }, [seats, takenByOthers, pickedIds])
 
   useLayoutEffect(() => {
     pickedIdsRef.current = pickedIds

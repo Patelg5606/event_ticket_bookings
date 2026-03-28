@@ -1,5 +1,5 @@
 import { Armchair } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { memo, useMemo, type ReactNode } from 'react'
 import type { Seat } from './types'
 
 type SeatGridProps = {
@@ -49,7 +49,7 @@ type SeatTileProps = {
   onPick: (seat: Seat) => void
 }
 
-function SeatTile({ seat, reserved, onPick }: SeatTileProps) {
+const SeatTile = memo(function SeatTile({ seat, reserved, onPick }: SeatTileProps) {
   const taken = seat.status === 'unavailable'
   const vip = seat.tier === 'VIP'
 
@@ -110,14 +110,19 @@ function SeatTile({ seat, reserved, onPick }: SeatTileProps) {
       {inner}
     </button>
   )
-}
+})
 
 type SeatRowProps = RowGroup & {
-  pickedIds: string[]
+  pickedSet: Set<string>
   onSeatClick: (seat: Seat) => void
 }
 
-function SeatRow({ row, seats, pickedIds, onSeatClick }: SeatRowProps) {
+const SeatRow = memo(function SeatRow({
+  row,
+  seats,
+  pickedSet,
+  onSeatClick,
+}: SeatRowProps) {
   return (
     <div className="flex items-stretch gap-2 sm:gap-2.5 md:gap-3">
       <div
@@ -131,14 +136,14 @@ function SeatRow({ row, seats, pickedIds, onSeatClick }: SeatRowProps) {
           <SeatTile
             key={seat.id}
             seat={seat}
-            reserved={pickedIds.includes(seat.id)}
+            reserved={pickedSet.has(seat.id)}
             onPick={onSeatClick}
           />
         ))}
       </div>
     </div>
   )
-}
+})
 
 type SectionShellProps = {
   title: string
@@ -176,16 +181,24 @@ function SectionShell({
   )
 }
 
-export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
-  const chosen = pickedIds ?? []
-  const list = seats ?? []
+export const SeatGrid = memo(function SeatGrid({
+  seats,
+  pickedIds,
+  onSeatClick,
+}: SeatGridProps) {
   const onPick = onSeatClick ?? (() => {})
 
-  const vipSeats = list.filter((s) => s.tier === 'VIP')
-  const generalSeats = list.filter((s) => s.tier === 'General')
+  const pickedSet = useMemo(() => new Set(pickedIds ?? []), [pickedIds])
 
-  const vipRows = buildRowGroups(vipSeats)
-  const generalRows = buildRowGroups(generalSeats)
+  const { vipRows, generalRows } = useMemo(() => {
+    const list = seats ?? []
+    const vipSeats = list.filter((s) => s.tier === 'VIP')
+    const generalSeats = list.filter((s) => s.tier === 'General')
+    return {
+      vipRows: buildRowGroups(vipSeats),
+      generalRows: buildRowGroups(generalSeats),
+    }
+  }, [seats])
 
   return (
     <div className="flex flex-col gap-1 sm:gap-6">
@@ -205,7 +218,7 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
               key={rg.row}
               row={rg.row}
               seats={rg.seats}
-              pickedIds={chosen}
+              pickedSet={pickedSet}
               onSeatClick={onPick}
             />
           ))}
@@ -222,7 +235,7 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
               key={rg.row}
               row={rg.row}
               seats={rg.seats}
-              pickedIds={chosen}
+              pickedSet={pickedSet}
               onSeatClick={onPick}
             />
           ))}
@@ -230,4 +243,4 @@ export function SeatGrid({ seats, pickedIds, onSeatClick }: SeatGridProps) {
       </div>
     </div>
   )
-}
+})

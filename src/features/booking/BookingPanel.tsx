@@ -1,4 +1,5 @@
 import { Armchair, Clock, CreditCard, ShoppingCart } from 'lucide-react'
+import { memo, useMemo } from 'react'
 import type { Seat } from './types'
 
 type BookingPanelProps = {
@@ -14,39 +15,51 @@ function formatHold(sec: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export function BookingPanel({
+type CartRow = {
+  id: string
+  price: number
+  tier: string
+}
+
+export const BookingPanel = memo(function BookingPanel({
   pickedIds,
   seats,
   holdSecondsLeft,
   onCheckout,
 }: BookingPanelProps) {
-  type Row = {
-    id: string
-    price: number
-    tier: string
-  }
+  const { rows, ticketsSubtotal, convenienceFee, gst, totalAmount, count, hasSeats } =
+    useMemo(() => {
+      const byId = new Map(seats.map((s): [string, Seat] => [s.id, s]))
+      const rowsAcc: CartRow[] = []
+      let subtotal = 0
 
-  const rows: Row[] = []
-  let ticketsSubtotal = 0
+      for (const id of [...pickedIds].sort()) {
+        const seat = byId.get(id)
+        if (seat) {
+          rowsAcc.push({
+            id: seat.id,
+            price: seat.price,
+            tier: seat.tier,
+          })
+          subtotal += seat.price
+        }
+      }
 
-  for (const id of [...pickedIds].sort()) {
-    const seat = seats.find((s) => s.id === id)
-    if (seat) {
-      rows.push({
-        id: seat.id,
-        price: seat.price,
-        tier: seat.tier,
-      })
-      ticketsSubtotal += seat.price
-    }
-  }
+      const fee = Math.round(subtotal * 0.1)
+      const gstVal = Math.round((subtotal + fee) * 0.18)
+      const total = subtotal + fee + gstVal
+      const n = rowsAcc.length
 
-  const convenienceFee = Math.round(ticketsSubtotal * 0.1)
-  const gst = Math.round((ticketsSubtotal + convenienceFee) * 0.18)
-  const totalAmount = ticketsSubtotal + convenienceFee + gst
-
-  const count = rows.length
-  const hasSeats = count > 0
+      return {
+        rows: rowsAcc,
+        ticketsSubtotal: subtotal,
+        convenienceFee: fee,
+        gst: gstVal,
+        totalAmount: total,
+        count: n,
+        hasSeats: n > 0,
+      }
+    }, [pickedIds, seats])
 
   return (
     <aside
@@ -153,4 +166,4 @@ export function BookingPanel({
       </div>
     </aside>
   )
-}
+})
