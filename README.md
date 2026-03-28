@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# Event ticket booking
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Single-page seat selection and checkout UI for events. Data is loaded from a mock API; booking state (selections, holds, simulated competition for seats) lives in the client.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Area | Choice |
+|------|--------|
+| Runtime | React 19, TypeScript |
+| Build | Vite 8 |
+| Styling | Tailwind CSS 4 (`@tailwindcss/vite`) |
+| Server state | TanStack Query (seat list fetch + cache) |
+| Icons | Lucide React |
 
-## React Compiler
+## Requirements
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+ (LTS recommended)
+- npm (or compatible client)
 
-## Expanding the ESLint configuration
+## Scripts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install    # dependencies
+npm run dev    # dev server + HMR
+npm run build  # typecheck + production bundle
+npm run lint   # ESLint
+npm run preview # serve ./dist locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project layout
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── app/                 # App shell, providers, query client
+├── pages/HomePage.tsx   # Booking flow orchestration
+├── features/booking/    # Seat grid, panel, modals, pricing helpers
+└── main.tsx
+```
+
+Path alias: `@/` → `src/`.
+
+## Behaviour (summary)
+
+- **Seat map:** VIP (rows A–B) and General (C–J), built in `buildSeats.ts` and exposed as `Seat[]` via `fetchSeatList` (~300ms delay).
+- **Selection:** Multi-select with cart-style panel; pricing uses subtotal, convenience fee, and GST via `computeCartTotals`.
+- **Hold timer:** Five-minute countdown from first selection; expiry clears the cart.
+- **Simulation:** Periodic client-side updates mark random available seats as taken (excluding current picks and already-booked IDs) to model contention.
+- **Checkout:** Confirms booking in-app, shows a summary modal, and marks seats unavailable for the rest of the session.
+
+## Constraints
+
+- No real payments or backend persistence; refresh resets session state except what React Query caches for the mock list.
+- Seat “reserved for you” is not stored on the server model—only `pickedIds` and merged display state.
+
+## Browser support
+
+Targets modern evergreen browsers (flex, grid, `dvh`, CSS `scrollbar-*` / `::-webkit-scrollbar` where used). Test on the browsers you ship to.
