@@ -1,5 +1,6 @@
 import { Armchair, Clock, CreditCard, ShoppingCart } from 'lucide-react'
 import { memo, useMemo } from 'react'
+import { computeCartTotals } from './computeCartTotals'
 import type { Seat } from './types'
 
 type BookingPanelProps = {
@@ -15,12 +16,6 @@ function formatHold(sec: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-type CartRow = {
-  id: string
-  price: number
-  tier: string
-}
-
 export const BookingPanel = memo(function BookingPanel({
   pickedIds,
   seats,
@@ -28,38 +23,7 @@ export const BookingPanel = memo(function BookingPanel({
   onCheckout,
 }: BookingPanelProps) {
   const { rows, ticketsSubtotal, convenienceFee, gst, totalAmount, count, hasSeats } =
-    useMemo(() => {
-      const byId = new Map(seats.map((s): [string, Seat] => [s.id, s]))
-      const rowsAcc: CartRow[] = []
-      let subtotal = 0
-
-      for (const id of [...pickedIds].sort()) {
-        const seat = byId.get(id)
-        if (seat) {
-          rowsAcc.push({
-            id: seat.id,
-            price: seat.price,
-            tier: seat.tier,
-          })
-          subtotal += seat.price
-        }
-      }
-
-      const fee = Math.round(subtotal * 0.1)
-      const gstVal = Math.round((subtotal + fee) * 0.18)
-      const total = subtotal + fee + gstVal
-      const n = rowsAcc.length
-
-      return {
-        rows: rowsAcc,
-        ticketsSubtotal: subtotal,
-        convenienceFee: fee,
-        gst: gstVal,
-        totalAmount: total,
-        count: n,
-        hasSeats: n > 0,
-      }
-    }, [pickedIds, seats])
+    useMemo(() => computeCartTotals(pickedIds, seats), [pickedIds, seats])
 
   return (
     <aside
@@ -127,43 +91,44 @@ export const BookingPanel = memo(function BookingPanel({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-slate-800/90 bg-[#111622] px-4 pb-5 pt-5 sm:px-5">
-        <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-400">Tickets subtotal</span>
-            <span className="font-semibold tabular-nums text-white">
-              ₹{ticketsSubtotal}
+      {hasSeats ? (
+        <div className="shrink-0 border-t border-slate-800/90 bg-[#111622] px-4 pb-5 pt-5 sm:px-5">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Tickets subtotal</span>
+              <span className="font-semibold tabular-nums text-white">
+                ₹{ticketsSubtotal}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">Convenience fee</span>
+              <span className="font-semibold tabular-nums text-white">
+                ₹{convenienceFee}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400">GST (18%)</span>
+              <span className="font-semibold tabular-nums text-white">₹{gst}</span>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-4 border-t border-slate-800/90 pt-5">
+            <span className="text-base font-semibold text-white">Total amount</span>
+            <span className="text-2xl font-bold tabular-nums tracking-tight text-[#5d5fef] sm:text-3xl">
+              ₹{totalAmount}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-400">Convenience fee</span>
-            <span className="font-semibold tabular-nums text-white">
-              ₹{convenienceFee}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-400">GST (18%)</span>
-            <span className="font-semibold tabular-nums text-white">₹{gst}</span>
-          </div>
-        </div>
 
-        <div className="mt-5 flex items-center justify-between gap-4 border-t border-slate-800/90 pt-5">
-          <span className="text-base font-semibold text-white">Total amount</span>
-          <span className="text-2xl font-bold tabular-nums tracking-tight text-[#5d5fef] sm:text-3xl">
-            ₹{totalAmount}
-          </span>
+          <button
+            type="button"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#5d5fef] py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:bg-[#4f52e6] active:scale-[0.99]"
+            onClick={onCheckout}
+          >
+            <CreditCard className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+            Proceed to Checkout
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#5d5fef] py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:bg-[#4f52e6] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none disabled:hover:bg-slate-700"
-          disabled={!hasSeats}
-          onClick={onCheckout}
-        >
-          <CreditCard className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
-          Proceed to Checkout
-        </button>
-      </div>
+      ) : null}
     </aside>
   )
 })

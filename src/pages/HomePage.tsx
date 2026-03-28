@@ -8,6 +8,12 @@ import {
   useState,
 } from 'react'
 import { BookingPanel } from '@/features/booking/BookingPanel'
+import {
+  BookingSuccessModal,
+  type BookingSuccessSummary,
+} from '@/features/booking/BookingSuccessModal'
+import { computeCartTotals } from '@/features/booking/computeCartTotals'
+import { SeatNoticeToast, type SeatNotice } from '@/features/booking/SeatNoticeToast'
 import { SeatGrid } from '@/features/booking/SeatGrid'
 import { fetchSeatList } from '@/features/booking/mockApi'
 import type { Seat } from '@/features/booking/types'
@@ -16,14 +22,24 @@ const HOLD_SECONDS = 5 * 60
 
 const EMPTY_SEAT_LIST: Seat[] = []
 
+const SEAT_NOTICE_MS = 4000
+
 export function HomePage() {
   const [pickedIds, setPickedIds] = useState<string[]>([])
   const [takenByOthers, setTakenByOthers] = useState<string[]>([])
   const [holdSecondsLeft, setHoldSecondsLeft] = useState<number | null>(null)
-  const [seatTakenFlash, setSeatTakenFlash] = useState(false)
+  const [seatNotice, setSeatNotice] = useState<SeatNotice | null>(null)
+  const [bookedSeatIds, setBookedSeatIds] = useState<string[]>([])
+  const [successModal, setSuccessModal] = useState<BookingSuccessSummary | null>(
+    null,
+  )
 
   const displaySeatsRef = useRef<Seat[]>([])
   const pickedIdsRef = useRef<string[]>([])
+  const bookedIdsRef = useRef<string[]>([])
+  const seatNoticeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  )
 
   const seatQuery = useQuery({
     queryKey: ['seats'],
@@ -31,6 +47,15 @@ export function HomePage() {
   })
 
   const seatList = seatQuery.data
+  const seats = seatList ?? EMPTY_SEAT_LIST
+
+  useEffect(() => {
+    return () => {
+      if (seatNoticeTimerRef.current !== null) {
+        window.clearTimeout(seatNoticeTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!seatList || seatList.length === 0) {
@@ -43,6 +68,9 @@ export function HomePage() {
 
         const open = seatList.filter((seat) => {
           if (seat.status !== 'available') {
+            return false
+          }
+          if (bookedIdsRef.current.includes(seat.id)) {
             return false
           }
           if (pickedIdsRef.current.includes(seat.id)) {
@@ -138,8 +166,26 @@ export function HomePage() {
     }
 
     if (fresh.status === 'unavailable') {
-      setSeatTakenFlash(true)
-      window.setTimeout(() => setSeatTakenFlash(false), 3200)
+      const ownPurchase = bookedIdsRef.current.includes(seat.id)
+      if (seatNoticeTimerRef.current !== null) {
+        window.clearTimeout(seatNoticeTimerRef.current)
+      }
+      setSeatNotice(
+        ownPurchase
+          ? {
+            heading: "Already selected",
+            message: "You have already added this seat to your booking."
+          }
+          :
+          {
+            heading: "Seat unavailable",
+            message: "This seat was just reserved by another guest. Please choose another seat."
+          }
+      )
+      seatNoticeTimerRef.current = window.setTimeout(() => {
+        setSeatNotice(null)
+        seatNoticeTimerRef.current = null
+      }, SEAT_NOTICE_MS)
       return
     }
 
@@ -153,17 +199,35 @@ export function HomePage() {
   }, [])
 
   const handleCheckout = useCallback(() => {
-    if (pickedIdsRef.current.length === 0) {
+    const ids = pickedIdsRef.current
+    if (ids.length === 0) {
       return
     }
+    const { ticketsSubtotal, convenienceFee, gst, totalAmount } =
+      computeCartTotals(ids, seats)
+
+    setBookedSeatIds((prev) => {
+      const merged = new Set([...prev, ...ids])
+      return [...merged]
+    })
     setPickedIds([])
     setHoldSecondsLeft(null)
-    window.alert('Checkout complete — hold released.')
-  }, [])
+    setSuccessModal({
+      seatIds: [...ids].sort(),
+      ticketsSubtotal,
+      convenienceFee,
+      gst,
+      totalAmount,
+    })
+  }, [seats])
 
-  const seats = seatList ?? EMPTY_SEAT_LIST
+  const bookedSet = useMemo(() => new Set(bookedSeatIds), [bookedSeatIds])
+
   const displaySeats = useMemo(() => {
     return seats.map((seat) => {
+      if (bookedSet.has(seat.id)) {
+        return { ...seat, status: 'unavailable' as const }
+      }
       const grabbed = takenByOthers.includes(seat.id)
       const mine = pickedIds.includes(seat.id)
       if (grabbed && !mine) {
@@ -171,10 +235,11 @@ export function HomePage() {
       }
       return seat
     })
-  }, [seats, takenByOthers, pickedIds])
+  }, [seats, takenByOthers, pickedIds, bookedSet])
 
   useLayoutEffect(() => {
     pickedIdsRef.current = pickedIds
+    bookedIdsRef.current = bookedSeatIds
     displaySeatsRef.current = displaySeats
   })
 
@@ -196,23 +261,26 @@ export function HomePage() {
 
   return (
     <div className="min-h-dvh bg-[#060b14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-slate-100">
-      {seatTakenFlash ? (
-        <div
-          role="alert"
-          className="fixed top-4 left-1/2 z-[100] max-w-[90vw] -translate-x-1/2 rounded-xl bg-amber-950/95 px-5 py-3 text-center text-sm font-semibold text-amber-100 shadow-xl ring-2 ring-amber-500/60"
-        >
-          Seat just taken!
-        </div>
+      {successModal ? (
+        <BookingSuccessModal
+          summary={successModal}
+          onDone={() => setSuccessModal(null)}
+        />
       ) : null}
 
-      <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:max-w-6xl">
+      <SeatNoticeToast notice={seatNotice} />
+
+      <main
+        className={`mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-3 py-4 sm:px-6 sm:py-6 md:px-8 lg:max-w-6xl ${successModal ? 'pointer-events-none blur-[2px]' : ''}`}
+        aria-hidden={successModal ? true : undefined}
+      >
         <header className="shrink-0 border-b border-slate-800/80 pb-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/90 sm:text-xs sm:tracking-[0.2em]">
             Event ticket booking
           </p>
           <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-500">
             Yellow seats are <span className="text-amber-400/90">reserved</span> for you (5 min hold).
-            Gray = taken. If a seat sells while you tap it, you will see an error.
+            Gray = taken. Tap a taken seat to see why it is unavailable.
           </p>
         </header>
 
